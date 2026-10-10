@@ -4,6 +4,8 @@ A lightweight personal-agent MVP for university students and company employees. 
 
 ## Current MVP
 - Daily-agent home with a single **What's my move?** recommendation
+- Browser-based voice input prototype using speech recognition when the browser supports it
+- Optional spoken replies and a read-aloud button for proposals
 - Commitment tracking for things the user owes, is waiting for, or needs to follow up
 - Context-aware move selection: due commitments first, then today's work, follow-ups, and high-priority tasks
 - Local agent context assembled from persona, open tasks, and active commitments
@@ -41,6 +43,10 @@ Without `OPENAI_API_KEY`, the backend uses a deterministic local rules-based pro
 
 Health check: `GET /api/health`.
 Agent proposal endpoint: `POST /api/agent/propose` with `{ "text": "...", "persona": "student" }`. The endpoint returns a proposal only; the user must approve it before the frontend saves a task.
+
+## Voice support (prototype)
+
+The UI includes a microphone input and optional spoken replies using browser speech APIs. Recognition is requested with the `ar-JO` locale, but browser/device support varies and may fall back to another Arabic recognition model internally. Speech synthesis chooses an available Arabic voice; a specifically Jordanian accent is not guaranteed. This is an initial interface prototype, not yet a validated Jordanian-dialect voice experience. Test it on real Jordanian Arabic recordings and devices before claiming dialect accuracy. Microphone access generally requires localhost or HTTPS and user permission.
 
 ## Product direction
 My Boy is being designed around a daily agent loop: **capture messy context → understand → propose → user approval → create/track work → recommend the next move → remember commitments**. Tasks are an internal tool, not the product itself.
