@@ -55,8 +55,8 @@ async function proposeWithOpenAI(text, context) {
     headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},
     body:JSON.stringify({
       model:MODEL,
-      instructions:'You are My Boy, a practical personal agent for university students and company employees in Jordan. Understand the user input in Arabic or English and propose one task, not a long list. Never invent deadlines: use null if unclear and set clarification_needed true when a date seems important but ambiguous. Do not execute actions, send messages, or claim to have contacted anyone. Detect follow-ups and commitments. Return only the requested schema.',
-      input:[{role:'user',content:'User context: '+context+'\nToday is '+new Date().toISOString().slice(0,10)+'. User message: '+text}],
+      instructions:'You are My Boy, a practical personal agent for university students and company employees in Jordan. Understand the user input in Arabic or English and propose one task, not a long list. Never invent deadlines: use null if unclear and set clarification_needed true when a date seems important but ambiguous. Do not execute actions, send messages, or claim to have contacted anyone. Detect follow-ups and commitments. Return only the requested schema. Use the supplied agent memory/state to keep continuity, avoid duplicating existing work, and choose the most useful next action.',
+      input:[{role:'user',content:'User context: '+context+'\nAgent memory/state: '+JSON.stringify({openTasks:state.openTasks||[],activeCommitments:state.activeCommitments||[],people:state.people||[],facts:state.facts||[],preferences:state.preferences||[]})+'\nToday is '+new Date().toISOString().slice(0,10)+'. User message: '+text}],
       text:{format:{type:'json_schema',name:'my_boy_proposal',strict:true,schema}},
       max_output_tokens:350
     })
