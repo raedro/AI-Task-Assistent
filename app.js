@@ -39,8 +39,25 @@ function render(){
  $('tasks').innerHTML=visible.length?visible.map(t=>'<div class="task '+(t.done?'done':'')+'"><input type="checkbox" aria-label="Mark '+escapeHtml(t.title)+' complete" '+(t.done?'checked':'')+' onchange="toggle(\''+t.id+'\')"><div class="task-main"><div class="task-title">'+escapeHtml(t.title)+'</div><div class="meta">'+(t.due?'Due '+escapeHtml(t.due):'No due date')+' · <span class="priority '+t.priority.toLowerCase()+'">'+escapeHtml(t.priority)+'</span>'+(t.followUp?' · Follow-up':'')+'</div></div><button class="secondary" onclick="removeTask(\''+t.id+'\')" aria-label="Delete task">Delete</button></div>').join(''):'<p class="empty">No tasks match this filter.</p>';
  renderAudit();renderCommitments();updateAgentSummary();
 }
+function getAgentContext(){
+ const activeCommitments=commitments.filter(c=>c.status!=='done');
+ const openTasks=tasks.filter(t=>!t.done);
+ return {persona:localStorage.getItem(PERSONA_KEY)||'student',openTasks,activeCommitments};
+}
+function chooseMove(){
+ const ctx=getAgentContext();
+ const dueCommitments=ctx.activeCommitments.filter(c=>c.due&&c.due<=today());
+ if(dueCommitments[0])return {type:'commitment',item:dueCommitments[0]};
+ const todayTasks=ctx.openTasks.filter(t=>t.due===today());
+ if(todayTasks.length)return {type:'task',item:todayTasks.find(t=>t.priority==='High')||todayTasks[0]};
+ const followUp=ctx.openTasks.find(t=>t.followUp);
+ if(followUp)return {type:'task',item:followUp};
+ const high=ctx.openTasks.find(t=>t.priority==='High');
+ return high?{type:'task',item:high}:ctx.openTasks[0]?{type:'task',item:ctx.openTasks[0]}:null;
+}
 function updateAgentSummary(){
  const pending=tasks.filter(t=>!t.done);
+ const activeCommitments=commitments.filter(c=>c.status!=='done');
  const dueToday=pending.filter(t=>t.due===today()).length;
  const persona=localStorage.getItem(PERSONA_KEY)||'student';
  const hour=new Date().getHours();
@@ -78,9 +95,13 @@ function getNextMove(){
  return todayTasks[0]||pending.find(t=>t.priority==='High')||pending[0];
 }
 function showMove(){
- const t=getNextMove();$('movePanel').hidden=false;
- if(!t){$('moveContent').innerHTML='<div class="move-card"><div><div class="move-title">You’re clear.</div><div class="move-meta">Tell My Boy what is coming up and I’ll help plan it.</div></div><button id="moveCapture">Tell My Boy</button></div>';$('moveCapture').onclick=()=>$('quickInput').focus();return}
- $('moveContent').innerHTML='<div class="move-card"><div><div class="move-title">'+escapeHtml(t.title)+'</div><div class="move-meta">'+(t.due?'Due '+escapeHtml(t.due)+' · ':'')+escapeHtml(t.priority)+' priority'+(t.followUp?' · Follow-up':'')+'</div></div><div class="move-actions"><button id="moveDone">Done</button><button id="moveSkip" class="secondary">Not now</button></div></div>';
+ const decision=chooseMove();
+ $('movePanel').hidden=false;
+ const t=decision?.type==='task'?decision.item:null;
+ const commitment=decision?.type==='commitment'?decision.item:null;
+ if(!decision){$('moveContent').innerHTML='<div class="move-card"><div><div class="move-title">You’re clear.</div><div class="move-meta">Tell My Boy what is coming up and I’ll help plan it.</div></div><button id="moveCapture">Tell My Boy</button></div>';$('moveCapture').onclick=()=>$('quickInput').focus();return}
+ if(commitment){$('moveContent').innerHTML='<div class="move-card"><div><div class="move-title">Follow up: '+escapeHtml(commitment.title)+'</div><div class="move-meta">This commitment is due for attention. My Boy is tracking it for you.</div></div><div class="move-actions"><button id="moveCommitDone">Done</button><button id="moveCommitSkip" class="secondary">Not now</button></div></div>'; $('moveCommitDone').onclick=()=>{completeCommitment(commitment.id);showMove();log('agent.move_completed',{commitmentId:commitment.id,type:'commitment'})}; $('moveCommitSkip').onclick=()=>{$('movePanel').hidden=true;log('agent.move_skipped',{commitmentId:commitment.id,type:'commitment'});}; log('agent.move_recommended',{commitmentId:commitment.id,type:'commitment'}); return}
+ $('moveContent').innerHTML='<div class="move-card"><div><div class="move-title">'+escapeHtml(t.title)+'</div><div class="move-meta">'+(t.due?'Due '+escapeHtml(t.due)+' · ':'')+escapeHtml(t.priority)+' priority'+(t.followUp?' · Follow-up':'')+'</div></div><div class="move-actions"><button id="moveDone">Done</button><button id="moveSkip" class="secondary">Not now</button></div></div>'; 
  $('moveDone').onclick=()=>{toggle(t.id);showMove();log('agent.move_completed',{taskId:t.id})};
  $('moveSkip').onclick=()=>{$('movePanel').hidden=true;log('agent.move_skipped',{taskId:t.id})};
  log('agent.move_recommended',{taskId:t.id});
