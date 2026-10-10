@@ -1,8 +1,11 @@
-# AI Task Assistant
+# My Boy — Personal Agent
 
-A lightweight, responsive personal task manager. The first release focuses on a dependable workflow before adding an external LLM or autonomous actions.
+A lightweight personal-agent MVP for university students and company employees. The product direction is: **My Boy works for you; you do not manage My Boy.**
 
 ## Current MVP
+- Daily-agent home with a single **What's my move?** recommendation
+- Commitment tracking for things the user owes, is waiting for, or needs to follow up
+- Persona-aware student, employee, and study + work contexts
 - Add tasks with due date and priority
 - Quick capture from a natural-language note
 - Audience-aware presets for university students and company employees
@@ -26,6 +29,11 @@ Quick capture currently uses a small, deterministic local parser. It is **not ye
 
 ## Run
 Open `index.html` in a modern browser. No build step or API key is required.
+
+## Product direction
+My Boy is being designed around a daily agent loop: **capture messy context → understand → propose → user approval → create/track work → recommend the next move → remember commitments**. Tasks are an internal tool, not the product itself.
+
+The first student wedge is **Assignment Rescue**: turn assignment instructions into confirmed requirements, milestones, and a recovery plan when the student falls behind. The employee wedge is **Follow-up & Commitment Tracking**: remember what the user owes, who they are waiting for, deadlines, and the next action.
 
 ## Roadmap
 - Replace/augment the local parser with a server-side LLM adapter and validated structured output
