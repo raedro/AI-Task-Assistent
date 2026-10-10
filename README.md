@@ -5,6 +5,8 @@ A lightweight, responsive personal task manager. The first release focuses on a 
 ## Current MVP
 - Add tasks with due date and priority
 - Quick capture from a natural-language note
+- Audience-aware presets for university students and company employees
+- Combined study + work profile for users who do both
 - Preview and confirm the parsed task before saving
 - Basic English and Arabic date/priority phrase recognition
 - Complete and delete tasks; filter pending/completed
