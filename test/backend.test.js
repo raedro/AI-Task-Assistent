@@ -11,3 +11,8 @@ assert.match(source, /Invalid proposal priority/);
 assert.match(source, /Invalid proposal due date/);
 
 console.log('My Boy backend static checks: PASS');
+
+assert.match(fs.readFileSync(require('node:path').join(__dirname, '..', 'app.js'), 'utf8'), /SpeechRecognition/);
+assert.match(fs.readFileSync(require('node:path').join(__dirname, '..', 'app.js'), 'utf8'), /speakText/);
+assert.match(fs.readFileSync(require('node:path').join(__dirname, '..', 'index.html'), 'utf8'), /voiceInputBtn/);
+console.log('My Boy voice UI static checks: PASS');
