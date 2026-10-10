@@ -1,11 +1,23 @@
 <!doctype html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f5f7fb"><title>AI Task Assistant</title><link rel="stylesheet" href="styles.css"></head>
-<body><main class="app"><header><div><p class="eyebrow">AI TASK ASSISTANT · JORDAN</p><h1>Organize your day.</h1><p class="muted">A practical assistant for university and IT work.</p></div><button id="addBtn">+ Add task</button></header>
-<section class="stats"><div><span>Due today</span><strong id="todayCount">0</strong></div><div><span>Completed</span><strong id="doneCount">0</strong></div><div><span>Pending</span><strong id="pendingCount">0</strong></div></section>
-<section class="panel capture"><div class="panel-head"><div><h2>Quick capture</h2><p class="muted small">Choose your profile to get relevant task suggestions.</p></div><span class="badge">User-controlled</span></div>
-<label for="persona">I am using this for</label><select id="persona" class="persona"><option value="student">University student</option><option value="it">IT employee</option><option value="both">Study and work</option></select>
-<div id="suggestions" class="suggestions" aria-label="Suggested tasks"></div>
-<label for="quickInput">What do you need to do?</label><textarea id="quickInput" rows="3" placeholder="مثال: بكرا عندي تسليم مشروع، لازم أخلص الجزء الأخير"></textarea><div class="capture-actions"><span class="muted small">Suggestions are examples. Review the interpretation before saving.</span><button id="parseBtn">Create suggestion</button></div><div id="preview" class="preview" hidden></div></section>
-<section class="panel"><div class="panel-head"><h2>Agent activity</h2><span class="badge">Approval required</span></div><div id="audit" class="audit"><p class="empty">No actions recorded yet.</p></div></section>
-<section class="panel"><div class="panel-head"><h2>My tasks</h2><select id="filter" aria-label="Filter tasks"><option value="all">All tasks</option><option value="pending">Pending</option><option value="done">Completed</option></select></div><div id="tasks" class="tasks"><p class="empty">No tasks yet. Add your first task.</p></div></section></main>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f5f7fb"><title>My Boy — Personal Agent</title><link rel="stylesheet" href="styles.css"></head>
+<body><main class="app">
+<header><div><p class="eyebrow">MY BOY · PERSONAL AGENT</p><h1>Tell me what’s going on.</h1><p class="muted">I’ll help turn it into your next move.</p></div><button id="addBtn">+ Add task</button></header>
+
+<section class="hero-agent panel"><div><span class="status-dot"></span><span class="badge">Ready to work</span><h2 id="greeting">Good morning.</h2><p id="agentSummary" class="muted">Let’s figure out what matters today.</p></div><button id="moveBtn" class="move-btn">What’s my move?</button></section>
+
+<section class="stats"><div><span>Today's moves</span><strong id="todayCount">0</strong></div><div><span>Completed</span><strong id="doneCount">0</strong></div><div><span>Pending</span><strong id="pendingCount">0</strong></div></section>
+
+<section class="panel move-panel" id="movePanel" hidden><div class="panel-head"><div><h2>Your move</h2><p class="muted small">One useful thing. Not a giant to-do list.</p></div><span class="badge">Agent recommendation</span></div><div id="moveContent"></div></section>
+
+<section class="panel capture"><div class="panel-head"><div><h2>Talk to My Boy</h2><p class="muted small">Give me the messy version. I’ll turn it into a proposal.</p></div><span class="badge">Approval required</span></div>
+<label for="persona">Your context</label><select id="persona" class="persona"><option value="student">University student</option><option value="employee">Company employee</option><option value="both">Study + work</option></select>
+<div id="suggestions" class="suggestions" aria-label="Suggested prompts"></div>
+<label for="quickInput">What’s going on?</label><textarea id="quickInput" rows="4" placeholder="مثال: المدير بده التقرير الخميس ولسه بستنى أرقام أحمد"></textarea><div class="capture-actions"><span class="muted small">Arabic and English supported. Nothing is saved without your approval.</span><button id="parseBtn">Let My Boy handle it</button></div><div id="preview" class="preview" hidden></div></section>
+
+<section class="panel"><div class="panel-head"><div><h2>Commitments</h2><p class="muted small">Things you promised, owe, or are waiting for.</p></div></div><div id="commitments" class="commitments"><p class="empty">No commitments yet.</p></div></section>
+
+<section class="panel"><div class="panel-head"><h2>My tasks</h2><select id="filter" aria-label="Filter tasks"><option value="all">All tasks</option><option value="pending">Pending</option><option value="done">Completed</option></select></div><div id="tasks" class="tasks"><p class="empty">No tasks yet. Tell My Boy what you need to do.</p></div></section>
+
+<section class="panel"><div class="panel-head"><h2>Agent activity</h2><span class="badge">Audited</span></div><div id="audit" class="audit"><p class="empty">No actions recorded yet.</p></div></section>
+</main>
 <dialog id="dialog"><form method="dialog" id="taskForm"><h2>Add task</h2><label>Task<input id="title" required maxlength="120" placeholder="e.g. Study Python for 1 hour"></label><label>Due date<input id="due" type="date"></label><label>Priority<select id="priority"><option>Medium</option><option>High</option><option>Low</option></select></label><div class="actions"><button type="button" id="cancelBtn" class="secondary">Cancel</button><button id="save" value="default">Add task</button></div></form></dialog><script src="app.js"></script></body></html>
