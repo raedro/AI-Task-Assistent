@@ -69,7 +69,7 @@ function render(){
  $('doneCount').textContent=tasks.filter(t=>t.done).length;
  $('pendingCount').textContent=tasks.filter(t=>!t.done).length;
  $('tasks').innerHTML=visible.length?visible.map(t=>'<div class="task '+(t.done?'done':'')+'"><input type="checkbox" aria-label="Mark '+escapeHtml(t.title)+' complete" '+(t.done?'checked':'')+' onchange="toggle(\''+t.id+'\')"><div class="task-main"><div class="task-title">'+escapeHtml(t.title)+'</div><div class="meta">'+(t.due?'Due '+escapeHtml(t.due):'No due date')+' · <span class="priority '+t.priority.toLowerCase()+'">'+escapeHtml(t.priority)+'</span>'+(t.followUp?' · Follow-up':'')+'</div></div><button class="secondary" onclick="removeTask(\''+t.id+'\')" aria-label="Delete task">Delete</button></div>').join(''):'<p class="empty">No tasks match this filter.</p>';
- renderAudit();renderCommitments();updateAgentSummary();
+ renderAudit();renderCommitments();renderMemory();updateAgentSummary();
 }
 function getAgentContext(){
  const activeCommitments=commitments.filter(c=>c.status!=='done');
@@ -114,6 +114,13 @@ function showPreview(t,raw){
    $('quickInput').value='';$('preview').hidden=true;save();
  };
 }
+function renderMemory(){
+ const el=$('memory');if(!el)return;
+ const people=memory.people.slice(0,6).map(p=>'<div class="commitment"><div class="commitment-icon">•</div><div class="commitment-main"><div class="commitment-title">'+escapeHtml(p.name)+'</div><div class="commitment-meta">Person My Boy has seen in your context</div></div></div>').join('');
+ const facts=memory.facts.slice(0,6).map(f=>'<div class="commitment"><div class="commitment-icon">✓</div><div class="commitment-main"><div class="commitment-title">'+escapeHtml(f.type.replace(/_/g,' '))+': '+escapeHtml(f.value)+'</div><div class="commitment-meta">Remembered from your input</div></div><button class="secondary" onclick="forgetMemory(\''+f.id+'\')">Forget</button></div>').join('');
+ el.innerHTML=(people+facts)||'<p class="empty">Nothing remembered yet. As you tell My Boy what is happening, useful context will appear here.</p>';
+}
+function forgetMemory(id){memory.facts=memory.facts.filter(f=>f.id!==id);saveMemory();renderMemory();log('memory.forgotten',{memoryId:id})}
 function renderCommitments(){
  const el=$('commitments');if(!el)return;
  const active=commitments.filter(c=>c.status!=='done').slice(0,6);
@@ -151,6 +158,6 @@ $('moveBtn').onclick=showMove;
 $('addBtn').onclick=()=>$('dialog').showModal();
 $('cancelBtn').onclick=()=>$('dialog').close();
 $('filter').onchange=render;
-$('parseBtn').onclick=async()=>{const raw=$('quickInput').value.trim();if(!raw){$('quickInput').focus();return}const btn=$('parseBtn');btn.disabled=true;btn.textContent='My Boy is thinking…';try{const response=await fetch('/api/agent/propose',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:raw,persona:$('persona').value})});if(!response.ok)throw new Error('Backend unavailable');const data=await response.json();const p=data.proposal;showPreview({title:p.title,due:p.dueDate||'',priority:p.priority.charAt(0).toUpperCase()+p.priority.slice(1),followUp:p.followUp?'Follow up':'',explanation:p.explanation,clarificationNeeded:p.clarificationNeeded,provider:p.provider},raw);log('agent.provider_used',{provider:p.provider,model:p.model||null})}catch(error){const p=inferTask(raw);p.explanation='Backend is unavailable; using local rules. This is not an LLM response.';showPreview(p,raw);log('agent.local_fallback',{reason:'backend_unavailable'})}finally{btn.disabled=false;btn.textContent='Let My Boy handle it'}};
+$('parseBtn').onclick=async()=>{const raw=$('quickInput').value.trim();if(!raw){$('quickInput').focus();return}const btn=$('parseBtn');btn.disabled=true;btn.textContent='My Boy is thinking…';try{const response=await fetch('/api/agent/propose',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:raw,persona:$('persona').value,state:getAgentState()})});if(!response.ok)throw new Error('Backend unavailable');const data=await response.json();const p=data.proposal;showPreview({title:p.title,due:p.dueDate||'',priority:p.priority.charAt(0).toUpperCase()+p.priority.slice(1),followUp:p.followUp?'Follow up':'',explanation:p.explanation,clarificationNeeded:p.clarificationNeeded,provider:p.provider},raw);log('agent.provider_used',{provider:p.provider,model:p.model||null})}catch(error){const p=inferTask(raw);p.explanation='Backend is unavailable; using local rules. This is not an LLM response.';showPreview(p,raw);log('agent.local_fallback',{reason:'backend_unavailable'})}finally{btn.disabled=false;btn.textContent='Let My Boy handle it'}};
 $('taskForm').onsubmit=e=>{e.preventDefault();const title=$('title').value.trim();if(!title)return;const task={id:crypto.randomUUID(),title,due:$('due').value,priority:$('priority').value,done:false,createdAt:new Date().toISOString(),source:'manual',followUp:''};tasks.unshift(task);log('task.created',{taskId:task.id,source:'manual'});$('taskForm').reset();$('dialog').close();save()};
 render();
