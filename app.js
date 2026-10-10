@@ -3,6 +3,7 @@ const LOG_KEY='ai-task-assistant.audit';
 const PERSONA_KEY='ai-task-assistant.persona';
 const COMMIT_KEY='ai-task-assistant.commitments';
 const MEMORY_KEY='ai-task-assistant.memory';
+const VOICE_REPLY_KEY='ai-task-assistant.voiceReply';
 const TASK_SUGGESTIONS={
  student:['عندي تسليم مشروع الخميس ولازم أخلص الجزء الأخير','عندي امتحان ولازم أراجع 4 محاضرات قبل الخميس','الدكتور طلب مني أعدل المشروع وأبعتله النسخة'],
  employee:['المدير بده التقرير الخميس ولسه بستنى أرقام أحمد','بعتت للعميل ولسه ما رد، ذكرني أتابعه','عندي اجتماع بكرا ولازم أجهز الأرقام'],
@@ -50,7 +51,7 @@ function rememberCommitment(task,raw,proposal){
  saveMemory();
  return c;
 }
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+function speakText(text){if(!('speechSynthesis' in window))return false;window.speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(String(text));utterance.lang='ar-JO';utterance.rate=0.96;utterance.pitch=1;const voices=window.speechSynthesis.getVoices();const voice=voices.find(v=>/^ar-JO$/i.test(v.lang))||voices.find(v=>/^ar-/i.test(v.lang));if(voice)utterance.voice=voice;window.speechSynthesis.speak(utterance);return true}\nfunction escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
 function inferTask(raw){
  let title=raw.trim(),due='',priority='Medium',followUp='';
  const lower=title.toLowerCase();
@@ -104,7 +105,7 @@ function showPreview(t,raw){
  const follow=t.followUp?'<div class="preview-item"><span>Signal</span><strong>Follow-up detected</strong></div>':'';
  $('preview').innerHTML='<h3>My Boy proposal</h3><p class="muted small">I understood this as a task'+(t.followUp?' with a follow-up':'')+'. Nothing is saved until you approve it.</p>'+(t.explanation?'<p class="muted small">'+escapeHtml(t.explanation)+'</p>':'')+(t.clarificationNeeded?'<p class="clarify-note">I’m not certain about the deadline. Add or correct it before saving.</p>':'')+'<div class="preview-grid"><div class="preview-item"><span>Next action</span><strong>'+escapeHtml(t.title||'Add a task title')+'</strong></div><div class="preview-item"><span>Due date</span><strong>'+(t.due?escapeHtml(t.due):'Not detected')+'</strong></div><div class="preview-item"><span>Priority</span><strong>'+escapeHtml(t.priority)+'</strong></div>'+follow+'</div><div class="actions"><button type="button" id="discardSuggestion" class="secondary">Reject</button><button type="button" id="confirmSuggestion" '+(t.title?'':'disabled')+'>Approve & let My Boy handle it</button></div>';
  log('agent.proposal_created',{input:raw,proposal:t});
- $('discardSuggestion').onclick=()=>{$('preview').hidden=true;log('agent.proposal_rejected',{proposal:t})};
+ $('speakProposal').onclick=()=>{const ok=speakText('فهمت عليك. '+(t.title||'')+'. الأولوية '+(t.priority||'متوسطة')+'. '+(t.due?'الموعد '+t.due+'. ':'')+(t.explanation||''));if(!ok)$('voiceStatus').textContent='Speech output is not supported in this browser.'};\n $('discardSuggestion').onclick=()=>{$('preview').hidden=true;log('agent.proposal_rejected',{proposal:t})};
  $('confirmSuggestion').onclick=()=>{
    const task={id:crypto.randomUUID(),title:t.title,due:t.due,priority:t.priority,done:false,createdAt:new Date().toISOString(),source:'agent',followUp:t.followUp};
    tasks.unshift(task);
@@ -158,6 +159,6 @@ $('moveBtn').onclick=showMove;
 $('addBtn').onclick=()=>$('dialog').showModal();
 $('cancelBtn').onclick=()=>$('dialog').close();
 $('filter').onchange=render;
-$('parseBtn').onclick=async()=>{const raw=$('quickInput').value.trim();if(!raw){$('quickInput').focus();return}const btn=$('parseBtn');btn.disabled=true;btn.textContent='My Boy is thinking…';try{const response=await fetch('/api/agent/propose',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:raw,persona:$('persona').value,state:getAgentState()})});if(!response.ok)throw new Error('Backend unavailable');const data=await response.json();const p=data.proposal;showPreview({title:p.title,due:p.dueDate||'',priority:p.priority.charAt(0).toUpperCase()+p.priority.slice(1),followUp:p.followUp?'Follow up':'',explanation:p.explanation,clarificationNeeded:p.clarificationNeeded,provider:p.provider},raw);log('agent.provider_used',{provider:p.provider,model:p.model||null})}catch(error){const p=inferTask(raw);p.explanation='Backend is unavailable; using local rules. This is not an LLM response.';showPreview(p,raw);log('agent.local_fallback',{reason:'backend_unavailable'})}finally{btn.disabled=false;btn.textContent='Let My Boy handle it'}};
+$('parseBtn').onclick=async()=>{const raw=$('quickInput').value.trim();if(!raw){$('quickInput').focus();return}const btn=$('parseBtn');btn.disabled=true;btn.textContent='My Boy is thinking…';try{const response=await fetch('/api/agent/propose',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:raw,persona:$('persona').value,state:getAgentState()})});if(!response.ok)throw new Error('Backend unavailable');const data=await response.json();const p=data.proposal;showPreview({title:p.title,due:p.dueDate||'',priority:p.priority.charAt(0).toUpperCase()+p.priority.slice(1),followUp:p.followUp?'Follow up':'',explanation:p.explanation,clarificationNeeded:p.clarificationNeeded,provider:p.provider},raw);if($('voiceReply')?.checked)speakText('فهمت عليك. '+p.title+'. '+(p.explanation||''));log('agent.provider_used',{provider:p.provider,model:p.model||null})}catch(error){const p=inferTask(raw);p.explanation='Backend is unavailable; using local rules. This is not an LLM response.';showPreview(p,raw);log('agent.local_fallback',{reason:'backend_unavailable'})}finally{btn.disabled=false;btn.textContent='Let My Boy handle it'}};
 $('taskForm').onsubmit=e=>{e.preventDefault();const title=$('title').value.trim();if(!title)return;const task={id:crypto.randomUUID(),title,due:$('due').value,priority:$('priority').value,done:false,createdAt:new Date().toISOString(),source:'manual',followUp:''};tasks.unshift(task);log('task.created',{taskId:task.id,source:'manual'});$('taskForm').reset();$('dialog').close();save()};
 render();
