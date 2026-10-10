@@ -1,10 +1,12 @@
 # My Boy — Personal Agent
 
-A lightweight personal-agent MVP for university students and company employees. The product direction is: **My Boy works for you; you do not manage My Boy.**
+A lightweight personal-agent MVP for university students and company employees. The product direction is: **My Boy works for you; you do not manage My Boy.** The current MVP now has a local context layer that chooses the next move from the user's active commitments and tasks.
 
 ## Current MVP
 - Daily-agent home with a single **What's my move?** recommendation
 - Commitment tracking for things the user owes, is waiting for, or needs to follow up
+- Context-aware move selection: due commitments first, then today's work, follow-ups, and high-priority tasks
+- Local agent context assembled from persona, open tasks, and active commitments
 - Persona-aware student, employee, and study + work contexts
 - Add tasks with due date and priority
 - Quick capture from a natural-language note
