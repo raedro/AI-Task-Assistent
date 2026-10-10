@@ -66,7 +66,10 @@ async function proposeWithOpenAI(text, context) {
   const raw=data.output_text || (data.output||[]).flatMap(x=>x.content||[]).find(x=>x.type==='output_text')?.text;
   if(!raw)throw new Error('The model returned no structured output');
   const p=JSON.parse(raw);
-  return {title:p.title,dueDate:p.due_date,priority:p.priority,followUp:p.follow_up,commitmentSummary:p.commitment_summary,clarificationNeeded:p.clarification_needed,explanation:p.explanation,provider:'openai-responses',model:MODEL};
+  if(typeof p.title!=='string'||!p.title.trim())throw new Error('Invalid proposal title');
+  if(!['low','medium','high'].includes(p.priority))throw new Error('Invalid proposal priority');
+  if(p.due_date!==null&&!/^\\d{4}-\\d{2}-\\d{2}$/.test(p.due_date))throw new Error('Invalid proposal due date');
+  return {title:p.title.trim(),dueDate:p.due_date,priority:p.priority,followUp:Boolean(p.follow_up),commitmentSummary:p.commitment_summary,clarificationNeeded:Boolean(p.clarification_needed),explanation:p.explanation,provider:'openai-responses',model:MODEL};
 }
 const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,'http://localhost');
