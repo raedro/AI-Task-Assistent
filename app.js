@@ -63,7 +63,7 @@ function updateAgentSummary(){
  const hour=new Date().getHours();
  const greeting=hour<12?'Good morning.':hour<18?'Good afternoon.':'Good evening.';
  $('greeting').textContent=greeting+' '+(persona==='student'?'Let’s handle university.':persona==='employee'?'Let’s handle work.':'Let’s handle both.');
- $('agentSummary').textContent=dueToday?('You have '+dueToday+' move'+(dueToday===1?'':'s')+' due today. I’ll help you pick what matters first.'):pending.length?('You have '+pending.length+' open task'+(pending.length===1?'':'s')+'. Ask me for your next move.'): 'Nothing is waiting on you yet. Tell me what’s going on.';
+ $('agentSummary').textContent=activeCommitments.length?('I’m tracking '+activeCommitments.length+' commitment'+(activeCommitments.length===1?'':'s')+' for you. Ask me what to do next.'):dueToday?('You have '+dueToday+' move'+(dueToday===1?'':'s')+' due today. I’ll help you pick what matters first.'):pending.length?('You have '+pending.length+' open task'+(pending.length===1?'':'s')+'. Ask me for your next move.'): 'Nothing is waiting on you yet. Tell me what’s coming up.';
 }
 function toggle(id){const t=tasks.find(x=>x.id===id);if(t){t.done=!t.done;log(t.done?'task.completed':'task.reopened',{taskId:id});save()}}
 function removeTask(id){const t=tasks.find(x=>x.id===id);tasks=tasks.filter(t=>t.id!==id);log('task.deleted',{taskId:id,title:t?.title||''});save()}
