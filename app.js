@@ -2,22 +2,54 @@ const KEY='ai-task-assistant.tasks';
 const LOG_KEY='ai-task-assistant.audit';
 const PERSONA_KEY='ai-task-assistant.persona';
 const COMMIT_KEY='ai-task-assistant.commitments';
+const MEMORY_KEY='ai-task-assistant.memory';
 const TASK_SUGGESTIONS={
  student:['عندي تسليم مشروع الخميس ولازم أخلص الجزء الأخير','عندي امتحان ولازم أراجع 4 محاضرات قبل الخميس','الدكتور طلب مني أعدل المشروع وأبعتله النسخة'],
  employee:['المدير بده التقرير الخميس ولسه بستنى أرقام أحمد','بعتت للعميل ولسه ما رد، ذكرني أتابعه','عندي اجتماع بكرا ولازم أجهز الأرقام'],
  both:['عندي شغل بالنهار وتسليم جامعة الخميس، ساعدني أرتبهم','عندي ساعة فاضية، شو أهم إشي أعمله؟','لازم أتابع شخص بالشغل وأخلص جزء من مشروع الجامعة']
 };
 const personaLabels={student:'University',employee:'Work',both:'Study + work'};
-let tasks=[],audit=[],commitments=[];
+let tasks=[],audit=[],commitments=[],memory={version:1,updatedAt:null,user:{},people:[],facts:[],commitments:[],preferences:[]};
 try{tasks=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(tasks))tasks=[]}catch{tasks=[]}
 try{audit=JSON.parse(localStorage.getItem(LOG_KEY)||'[]');if(!Array.isArray(audit))audit=[]}catch{audit=[]}
 try{commitments=JSON.parse(localStorage.getItem(COMMIT_KEY)||'[]');if(!Array.isArray(commitments))commitments=[]}catch{commitments=[]}
+try{const stored=JSON.parse(localStorage.getItem(MEMORY_KEY)||'null');if(stored&&typeof stored==='object')memory={...memory,...stored}}catch{}
 const $=id=>document.getElementById(id);
 const today=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
 const dateOffset=n=>{const d=new Date();d.setDate(d.getDate()+n);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
 const save=()=>{localStorage.setItem(KEY,JSON.stringify(tasks));render()};
 function log(action,details={}){audit.unshift({id:crypto.randomUUID(),at:new Date().toISOString(),action,details});audit=audit.slice(0,100);localStorage.setItem(LOG_KEY,JSON.stringify(audit));renderAudit()}
 function saveCommitments(){localStorage.setItem(COMMIT_KEY,JSON.stringify(commitments));renderCommitments()}
+function saveMemory(){memory.updatedAt=new Date().toISOString();localStorage.setItem(MEMORY_KEY,JSON.stringify(memory))}
+function getAgentState(){
+ const activeCommitments=commitments.filter(c=>c.status!=='done');
+ const openTasks=tasks.filter(t=>!t.done);
+ return {version:memory.version,updatedAt:memory.updatedAt,persona:localStorage.getItem(PERSONA_KEY)||'student',openTasks,activeCommitments,people:memory.people,facts:memory.facts,preferences:memory.preferences};
+}
+function extractMemory(raw,proposal){
+ const text=String(raw||'');
+ const names=[...new Set((text.match(/(?:أحمد|محمد|محمود|عمر|خالد|علي|يوسف|سارة|ليان|نور|ريم|رنا|دانا|عبدالله|عبد الله)/g)||[]))];
+ names.forEach(name=>{if(!memory.people.some(p=>p.name===name))memory.people.push({id:crypto.randomUUID(),name,firstSeenAt:new Date().toISOString()})});
+ const waiting=/(?:بستنى|بانتظار|انتظار|waiting for|waiting)\s*(?:من|for)?\s*([^،,.!?\n]+)/i.exec(text);
+ if(waiting&&waiting[1]){
+   const value=waiting[1].trim().slice(0,80);
+   if(value&&!memory.facts.some(f=>f.type==='waiting_for'&&f.value===value))memory.facts.unshift({id:crypto.randomUUID(),type:'waiting_for',value,source:'user_input',createdAt:new Date().toISOString()});
+ }
+ if(proposal?.dueDate&&!memory.facts.some(f=>f.type==='deadline'&&f.value===proposal.dueDate&&f.sourceText===text)){
+   memory.facts.unshift({id:crypto.randomUUID(),type:'deadline',value:proposal.dueDate,sourceText:text,createdAt:new Date().toISOString()});
+ }
+ memory.facts=memory.facts.slice(0,50);
+ saveMemory();
+}
+function rememberCommitment(task,raw,proposal){
+ const existing=commitments.find(c=>c.title===task.title&&c.status!=='done');
+ if(existing)return existing;
+ const c={id:crypto.randomUUID(),type:proposal?.followUp?'follow_up':'commitment',title:task.title,due:task.due||'',status:'active',nextAction:'Follow up',source:'agent',sourceText:raw,createdAt:new Date().toISOString()};
+ commitments.unshift(c);commitments=commitments.slice(0,50);saveCommitments();
+ memory.commitments=commitments.map(x=>({id:x.id,type:x.type,title:x.title,due:x.due,status:x.status,nextAction:x.nextAction}));
+ saveMemory();
+ return c;
+}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
 function inferTask(raw){
  let title=raw.trim(),due='',priority='Medium',followUp='';
@@ -42,7 +74,7 @@ function render(){
 function getAgentContext(){
  const activeCommitments=commitments.filter(c=>c.status!=='done');
  const openTasks=tasks.filter(t=>!t.done);
- return {persona:localStorage.getItem(PERSONA_KEY)||'student',openTasks,activeCommitments};
+ return getAgentState();
 }
 function chooseMove(){
  const ctx=getAgentContext();
@@ -76,7 +108,8 @@ function showPreview(t,raw){
  $('confirmSuggestion').onclick=()=>{
    const task={id:crypto.randomUUID(),title:t.title,due:t.due,priority:t.priority,done:false,createdAt:new Date().toISOString(),source:'agent',followUp:t.followUp};
    tasks.unshift(task);
-   if(t.followUp){commitments.unshift({id:crypto.randomUUID(),title:t.title,due:t.due,status:'waiting',createdAt:new Date().toISOString()});saveCommitments();log('agent.commitment_created',{taskId:task.id,type:'follow-up'})}
+   if(t.followUp){const c=rememberCommitment(task,raw,t);log('agent.commitment_created',{taskId:task.id,commitmentId:c.id,type:'follow-up'})}
+   extractMemory(raw,t);
    log('agent.action_approved',{action:'task.create',taskId:task.id,proposal:t});
    $('quickInput').value='';$('preview').hidden=true;save();
  };
@@ -86,7 +119,7 @@ function renderCommitments(){
  const active=commitments.filter(c=>c.status!=='done').slice(0,6);
  el.innerHTML=active.length?active.map(c=>'<div class="commitment"><div class="commitment-icon">↗</div><div class="commitment-main"><div class="commitment-title">'+escapeHtml(c.title)+'</div><div class="commitment-meta">My Boy is tracking this follow-up'+(c.due?' · '+escapeHtml(c.due):'')+'</div></div><button class="secondary" onclick="completeCommitment(\''+c.id+'\')">Done</button></div>').join(''):'<p class="empty">No commitments yet. Tell My Boy about something you’re waiting for or owe.</p>';
 }
-function completeCommitment(id){const c=commitments.find(x=>x.id===id);if(c){c.status='done';c.completedAt=new Date().toISOString();saveCommitments();log('commitment.completed',{commitmentId:id})}}
+function completeCommitment(id){const c=commitments.find(x=>x.id===id);if(c){c.status='done';c.completedAt=new Date().toISOString();saveCommitments();memory.commitments=commitments.map(x=>({id:x.id,type:x.type,title:x.title,due:x.due,status:x.status,nextAction:x.nextAction}));saveMemory();log('commitment.completed',{commitmentId:id})}}
 function renderAudit(){const el=$('audit');if(!el)return;el.innerHTML=audit.slice(0,8).map(x=>'<div class="audit-row"><span>'+escapeHtml(x.action)+'</span><time>'+new Date(x.at).toLocaleString()+'</time></div>').join('')||'<p class="empty">No actions recorded yet.</p>'}
 function getNextMove(){
  const pending=tasks.filter(t=>!t.done);
