@@ -5,7 +5,8 @@
   "description": "My Boy personal-agent MVP for students and employees",
   "scripts": {
     "start": "node server.js",
-    "dev": "NODE_ENV=development node server.js"
+    "dev": "NODE_ENV=development node server.js",
+    "test": "node test/backend.test.js"
   },
   "engines": {
     "node": ">=18"
