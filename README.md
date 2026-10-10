@@ -30,7 +30,17 @@ Quick capture currently uses a small, deterministic local parser. It is **not ye
 6. Keep API keys on a server, never in browser JavaScript.
 
 ## Run
-Open `index.html` in a modern browser. No build step or API key is required.
+Requirements: Node.js 18 or newer.
+
+1. Copy `.env.example` to `.env` if you want to configure a provider.
+2. Optionally add your own `OPENAI_API_KEY` to `.env`. Keep it private; `.env` is ignored by Git.
+3. Run `npm start`.
+4. Open `http://127.0.0.1:3000`.
+
+Without `OPENAI_API_KEY`, the backend uses a deterministic local rules-based provider. With a key, it uses the OpenAI Responses API and requests structured JSON output. The key is read by the server and never sent to browser JavaScript. API usage may incur charges.
+
+Health check: `GET /api/health`.
+Agent proposal endpoint: `POST /api/agent/propose` with `{ "text": "...", "persona": "student" }`. The endpoint returns a proposal only; the user must approve it before the frontend saves a task.
 
 ## Product direction
 My Boy is being designed around a daily agent loop: **capture messy context → understand → propose → user approval → create/track work → recommend the next move → remember commitments**. Tasks are an internal tool, not the product itself.
@@ -38,6 +48,7 @@ My Boy is being designed around a daily agent loop: **capture messy context → 
 The first student wedge is **Assignment Rescue**: turn assignment instructions into confirmed requirements, milestones, and a recovery plan when the student falls behind. The employee wedge is **Follow-up & Commitment Tracking**: remember what the user owes, who they are waiting for, deadlines, and the next action.
 
 ## Roadmap
+- Add tests for backend input validation, provider failures, and structured proposal validation
 - Replace/augment the local parser with a server-side LLM adapter and validated structured output
 - Add tests for date extraction, priority inference, and malformed inputs
 - Add authentication and database persistence
