@@ -31,7 +31,7 @@ function readBody(req) {
 function localProposal(text) {
   let title=text.trim(), dueDate=null, priority='medium';
   const today=new Date(); const localDate=n=>{const d=new Date(today);d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
-  const dates=[[/\\b(day after tomorrow)\\b|بعد بكرا|بعد غد/i,2],[/\\b(today|tonight)\\b|اليوم|الليلة/i,0],[/\\b(tomorrow|tmrw)\\b|بكرا|بكرة|غدا|غداً/i,1]];
+  const dates=[[/\b(day after tomorrow)\b|بعد بكرا|بعد غد/i,2],[/\b(today|tonight)\b|اليوم|الليلة/i,0],[/\b(tomorrow|tmrw)\b|بكرا|بكرة|غدا|غداً/i,1]];
   for(const [re,n] of dates){if(re.test(title)){dueDate=localDate(n);title=title.replace(re,' ').replace(/\s+/g,' ').trim();break;}}
   if(/\b(urgent|asap|important|critical)\b|ضروري|مهم جدا|عاجل|مهم/i.test(title))priority='high';
   else if(/\b(low priority|not urgent)\b|مش مستعجل|غير عاجل/i.test(title))priority='low';
