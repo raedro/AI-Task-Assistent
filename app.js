@@ -161,4 +161,24 @@ $('cancelBtn').onclick=()=>$('dialog').close();
 $('filter').onchange=render;
 $('parseBtn').onclick=async()=>{const raw=$('quickInput').value.trim();if(!raw){$('quickInput').focus();return}const btn=$('parseBtn');btn.disabled=true;btn.textContent='My Boy is thinking…';try{const response=await fetch('/api/agent/propose',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:raw,persona:$('persona').value,state:getAgentState()})});if(!response.ok)throw new Error('Backend unavailable');const data=await response.json();const p=data.proposal;showPreview({title:p.title,due:p.dueDate||'',priority:p.priority.charAt(0).toUpperCase()+p.priority.slice(1),followUp:p.followUp?'Follow up':'',explanation:p.explanation,clarificationNeeded:p.clarificationNeeded,provider:p.provider},raw);if($('voiceReply')?.checked)speakText('فهمت عليك. '+p.title+'. '+(p.explanation||''));log('agent.provider_used',{provider:p.provider,model:p.model||null})}catch(error){const p=inferTask(raw);p.explanation='Backend is unavailable; using local rules. This is not an LLM response.';showPreview(p,raw);log('agent.local_fallback',{reason:'backend_unavailable'})}finally{btn.disabled=false;btn.textContent='Let My Boy handle it'}};
 $('taskForm').onsubmit=e=>{e.preventDefault();const title=$('title').value.trim();if(!title)return;const task={id:crypto.randomUUID(),title,due:$('due').value,priority:$('priority').value,done:false,createdAt:new Date().toISOString(),source:'manual',followUp:''};tasks.unshift(task);log('task.created',{taskId:task.id,source:'manual'});$('taskForm').reset();$('dialog').close();save()};
+
+const voiceReply=$('voiceReply');
+if(voiceReply){voiceReply.checked=localStorage.getItem(VOICE_REPLY_KEY)==='true';voiceReply.onchange=()=>localStorage.setItem(VOICE_REPLY_KEY,String(voiceReply.checked))}
+const voiceBtn=$('voiceInputBtn');
+if(voiceBtn){
+ const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SpeechRecognition){voiceBtn.disabled=true;$('voiceStatus').textContent='Voice input is not supported in this browser. Try a supported browser; you can still type.'}
+ else {
+  voiceBtn.onclick=()=>{
+   const recognition=new SpeechRecognition();recognition.lang='ar-JO';recognition.interimResults=true;recognition.continuous=false;
+   voiceBtn.disabled=true;voiceBtn.textContent='Listening…';$('voiceStatus').textContent='احكي براحتك، بحاول ألتقط كلامك باللهجة الأردنية.';
+   let finalText='';
+   recognition.onresult=event=>{let interim='';for(let i=event.resultIndex;i<event.results.length;i++){const transcript=event.results[i][0].transcript;if(event.results[i].isFinal)finalText+=transcript;else interim+=transcript}$('quickInput').value=(finalText+' '+interim).trim()};
+   recognition.onerror=event=>{$('voiceStatus').textContent=event.error==='not-allowed'?'Microphone permission was denied. Enable it in browser settings.':'Voice recognition failed ('+event.error+'). You can type instead.'};
+   recognition.onend=()=>{voiceBtn.disabled=false;voiceBtn.textContent='🎙 Speak to My Boy';if(finalText.trim())$('voiceStatus').textContent='تم التقاط الكلام. راجعه واضغط Let My Boy handle it.';else if(!$('voiceStatus').textContent.includes('denied'))$('voiceStatus').textContent='ما التقطت كلام واضح. جرّب مرة ثانية أو اكتب رسالتك.'};
+   try{recognition.start()}catch{$('voiceStatus').textContent='Could not start microphone. Try again.';voiceBtn.disabled=false;voiceBtn.textContent='🎙 Speak to My Boy'}
+  };
+ }
+}
+
 render();
